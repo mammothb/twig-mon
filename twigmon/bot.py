@@ -24,7 +24,7 @@ class TwIgMonitor(object):
         auth.set_access_token(token["access_key"], token["access_secret"])
         self.api = tweepy.API(auth)
         self.threads = list()
-        self.ig_feed = IgFeed(last_update=time.gmtime(1534896000))
+        self.ig_feed = IgFeed()
         self.ig_story = IgStory()
         self.twt_stream = TwtStream()
 
