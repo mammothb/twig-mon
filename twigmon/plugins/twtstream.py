@@ -21,7 +21,7 @@ class TwtStream(object):
         self.auth.set_access_token(READ_KEY["access_key"],
                                    READ_KEY["access_secret"])
         self.api = tweepy.API(self.auth)
-        self.listener = SListener(self, self.api)
+        self.listener = SListener(self, self.api, USER["twt"])
         self.stream = tweepy.Stream(self.auth, self.listener)
 
     def run(self):

@@ -13,9 +13,10 @@ from twigmon.utility import download_media
 LOG = logging.getLogger("TwtStream")
 
 class SListener(tweepy.StreamListener):
-    def __init__(self, client, api=None):
+    def __init__(self, client, api=None, follow=None):
         super().__init__(api)
         self.client = client
+        self.follow = [] if follow is None else follow
 
     def on_data(self, raw_data):
         data = json.loads(raw_data)
@@ -26,6 +27,10 @@ class SListener(tweepy.StreamListener):
         # ignore retweets
         if status.get("retweeted_status") is not None:
             return
+        # ignore tweets from other people
+        if status["user"]["id_str"] not in self.follow:
+            return
+
         LOG.info("Tweet at %s", time.strftime(r"%Y%m%d-%H%M%S"))
         status_text = (status["extended_tweet"]["full_text"]
                        if status["truncated"] else status["text"])
