@@ -31,7 +31,7 @@ class SListener(tweepy.StreamListener):
         if status["user"]["id_str"] not in self.follow:
             return
 
-        LOG.info("Tweet at %s", time.strftime(r"%Y%m%d-%H%M%S"))
+        LOG.info("%s New tweet", time.strftime(r"%Y%m%d-%H%M%S"))
         status_text = (status["extended_tweet"]["full_text"]
                        if status["truncated"] else status["text"])
         media_paths = list()
