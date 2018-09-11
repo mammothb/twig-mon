@@ -58,5 +58,4 @@ class SListener(tweepy.StreamListener):
             status["user"]["screen_name"],
             re.sub(r"(?<=[@])(?=[^/])", r"/", status_text))
         tweet = {"text": status_text, "media": media_paths}
-        self.client.tweets.append(tweet)
-        self.client.has_update = True
+        self.client.tweets.put(tweet)

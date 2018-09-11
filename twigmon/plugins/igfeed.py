@@ -1,13 +1,12 @@
-from collections import deque
 import json
 import logging
 import os
+from queue import Queue
 import time
 import urllib
 
 from bs4 import BeautifulSoup
 from selenium import webdriver
-from selenium.webdriver.common.by import By
 
 from twigmon.config import USER
 from twigmon.const import DATA_DIR, DEBUG_DIR, IG_URL
@@ -24,8 +23,7 @@ class IgFeed(object):
         self.driver = webdriver.Chrome(options=chrome_options)
         self.last_update = (time.gmtime() if last_update is None
                             else last_update)
-        self.has_update = False
-        self.posts = deque()
+        self.posts = Queue()
 
     def _query_page(self, url):
         self.driver.get(url)
@@ -56,8 +54,7 @@ class IgFeed(object):
                 "caption": post.caption,
                 "source": media_paths
             }
-            self.posts.append(data)
-            self.has_update = True
+            self.posts.put(data)
             with open(os.path.join(DEBUG_DIR, "ig_post.json"), "w",
                       encoding="utf-8") as outfile:
                 outfile.write(json.dumps(data))

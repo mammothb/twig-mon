@@ -1,5 +1,5 @@
-from collections import deque
 import logging
+from queue import Queue
 from ssl import SSLError
 import time
 
@@ -14,8 +14,7 @@ LOG = logging.getLogger("TwtStream")
 
 class TwtStream(object):
     def __init__(self):
-        self.has_update = False
-        self.tweets = deque()
+        self.tweets = Queue()
         self.auth = tweepy.auth.OAuthHandler(READ_KEY["consumer_key"],
                                              READ_KEY["consumer_secret"])
         self.auth.set_access_token(READ_KEY["access_key"],

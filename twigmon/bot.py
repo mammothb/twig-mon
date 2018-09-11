@@ -91,57 +91,51 @@ class TwIgMonitor(object):
     @bg_task(600)
     def post(self):
         time.sleep(60)
-        if self.ig_feed.has_update:
-            while self.ig_feed.posts:
-                feed_data = self.ig_feed.posts.popleft()
-                video_paths = [m_path for m_path in feed_data["source"]
-                               if ".mp4" in m_path]
-                photo_paths = [m_path for m_path in feed_data["source"]
-                               if ".jpg" in m_path]
-                # split list into uneven groups, from:
-                # https://stackoverflow.com/questions/38861457
-                it_photo_paths = iter(photo_paths)
-                n_photo_list = [
-                    min(MAX_PHOTO, len(photo_paths) - i * MAX_PHOTO)
-                    for i in range(math.ceil(len(photo_paths) / MAX_PHOTO))]
-                photo_paths = [
-                    sli for sli in (list(islice(it_photo_paths, 0, i))
-                                    for i in n_photo_list)]
-                total = len(video_paths) + len(photo_paths)
-                counter = 1
-                for video_path in video_paths:
-                    status_text = "ig_feed ({}/{}): {}".format(
-                        counter, total, feed_data["caption"])
-                    self.post_tweet(status_text, [video_path])
-                    counter += 1
-                for photo_path in photo_paths:
-                    status_text = "ig_feed ({}/{}): {}".format(
-                        counter, total, feed_data["caption"])
-                    self.post_tweet(status_text, photo_path)
-                    counter += 1
+        while not self.ig_feed.posts.empty():
+            feed_data = self.ig_feed.posts.get()
+            video_paths = [m_path for m_path in feed_data["source"]
+                           if ".mp4" in m_path]
+            photo_paths = [m_path for m_path in feed_data["source"]
+                           if ".jpg" in m_path]
+            # split list into uneven groups, from:
+            # https://stackoverflow.com/questions/38861457
+            it_photo_paths = iter(photo_paths)
+            n_photo_list = [
+                min(MAX_PHOTO, len(photo_paths) - i * MAX_PHOTO)
+                for i in range(math.ceil(len(photo_paths) / MAX_PHOTO))]
+            photo_paths = [
+                sli for sli in (list(islice(it_photo_paths, 0, i))
+                                for i in n_photo_list)]
+            total = len(video_paths) + len(photo_paths)
+            counter = 1
+            for video_path in video_paths:
+                status_text = "ig_feed ({}/{}): {}".format(
+                    counter, total, feed_data["caption"])
+                self.post_tweet(status_text, [video_path])
+                counter += 1
+            for photo_path in photo_paths:
+                status_text = "ig_feed ({}/{}): {}".format(
+                    counter, total, feed_data["caption"])
+                self.post_tweet(status_text, photo_path)
+                counter += 1
 
-                # remove the downloaded media after tweeting since we will
-                # not be overwriting them
-                for media_path in feed_data["source"]:
-                    os.remove(media_path)
-            self.ig_feed.has_update = False
+            # remove the downloaded media after tweeting since we will
+            # not be overwriting them
+            for media_path in feed_data["source"]:
+                os.remove(media_path)
 
-        if self.ig_story.has_update:
-            while self.ig_story.stories:
-                story = self.ig_story.stories.popleft()
-                media_path = os.path.join(STORY_DIR,
-                                          urllib.parse.quote(story, safe=""))
-                status_text = "ig_story: {}".format(
-                    time.strftime(r"%Y%m%d-%H%M%S"))
-                self.post_tweet(status_text, [media_path])
-            self.ig_story.has_update = False
+        while not self.ig_story.stories.empty():
+            story = self.ig_story.stories.get()
+            media_path = os.path.join(STORY_DIR,
+                                      urllib.parse.quote(story, safe=""))
+            status_text = "ig_story: {}".format(
+                time.strftime(r"%Y%m%d-%H%M%S"))
+            self.post_tweet(status_text, [media_path])
 
-        if self.twt_stream.has_update:
-            while self.twt_stream.tweets:
-                tweet = self.twt_stream.tweets.popleft()
-                self.post_tweet(tweet["text"], tweet["media"])
-                # remove the downloaded media after tweeting since we will
-                # not be overwriting them
-                for media_path in tweet["media"]:
-                    os.remove(media_path)
-            self.twt_stream.has_update = False
+        while not self.twt_stream.tweets.empty():
+            tweet = self.twt_stream.tweets.get()
+            self.post_tweet(tweet["text"], tweet["media"])
+            # remove the downloaded media after tweeting since we will
+            # not be overwriting them
+            for media_path in tweet["media"]:
+                os.remove(media_path)

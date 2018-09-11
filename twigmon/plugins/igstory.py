@@ -1,7 +1,7 @@
-from collections import deque
 import filecmp
 import logging
 import os
+from queue import Queue
 import random
 import shelve
 import time
@@ -34,8 +34,7 @@ class IgStory(object):
         self.db = shelve.open(os.path.join(DATA_DIR, "ig_story_db"))
         self.last_clean_up = (time.gmtime() if last_clean_up is None
                               else last_clean_up)
-        self.has_update = False
-        self.stories = deque()
+        self.stories = Queue()
         self._is_logged_in = False
 
     def login(self):
@@ -144,6 +143,5 @@ class IgStory(object):
             self.last_clean_up = time.gmtime()
         stories = self._get_stories(IG_URL + "stories/" + USER["ig"])
         stories = self._check_new_stories(stories)
-        if stories:
-            self.stories.extend(stories)
-            self.has_update = True
+        for story in stories:
+            self.stories.put(story)
