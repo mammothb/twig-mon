@@ -47,7 +47,10 @@ class IgFeed(object):
                 media_path = os.path.join(DATA_DIR,
                                           urllib.parse.quote(url, safe=""))
                 if download_media(url, media_path):
-                    media_paths.append(media_path)
+                    # Remove query strings in sources
+                    new_path = media_path[: media_path.index("%3F")]
+                    os.rename(media_path, new_path)
+                    media_paths.append(new_path)
             data = {
                 "timestamp": time.strftime(r"%Y-%m-%dT%H:%M:%S",
                                            post.timestamp),

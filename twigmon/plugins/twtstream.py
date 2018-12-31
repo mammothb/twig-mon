@@ -1,11 +1,8 @@
 import logging
 from queue import Queue
-from ssl import SSLError
 import time
 
-from requests.exceptions import Timeout
 import tweepy
-from urllib3.exceptions import ReadTimeoutError
 
 from twigmon.config import READ_KEY, USER
 from twigmon.plugins.slistener import SListener
@@ -26,16 +23,8 @@ class TwtStream(object):
     def run(self):
         while not self.stream.running:
             try:
-                LOG.info("%s Streaming started",
-                         time.strftime(r"%Y%m%d-%H%M%S"))
-                self.stream.filter(follow=USER["twt"], async=True)
-            except (Timeout, SSLError, ReadTimeoutError,
-                    ConnectionError) as err:
-                LOG.warning("Network error occurred, retrying... %s",
-                            str(err))
-            except KeyboardInterrupt:
-                logging.info("Program interrupted by user. Quitting...")
-                self.stream.disconnect()
+                LOG.info("%s Streaming started", time.strftime("%Y%m%d-%H%M%S"))
+                self.stream.filter(follow=USER["twt"])
             except Exception as exception:  # pylint: disable=W0703
                 logging.exception(exception)
-                self.stream.disconnect()
+                continue
