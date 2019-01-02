@@ -82,23 +82,23 @@ class IgStory(object):
             except TimeoutException:
                 return stories
             soup = BeautifulSoup(self.driver.page_source, "html.parser")
-            num_story = len(soup.find_all("div", attrs={"class",
-                                                        self.indicator_class}))
+            num_story = len(soup.find_all(
+                "div", attrs={"class", self.indicator_class}))
             for i in range(num_story):
                 time.sleep(0.5)
                 soup = BeautifulSoup(self.driver.page_source, "html.parser")
-                with open(os.path.join(DEBUG_DIR, "ig_story{}.html".format(i)),
-                          "w", encoding="utf-8") as outfile:
+                with open(os.path.join(
+                    DEBUG_DIR, "ig_story{}.html".format(i)), "w",
+                          encoding="utf-8") as outfile:
                     outfile.write(self.driver.page_source)
                 # Try for video story, then look for image story
                 try:
                     src = soup.find("source")["src"]
-                    # ignore extra substring behind .mp4 extension
-                    stories.append(src[: src.index(".mp4")] + ".mp4")
+                    stories.append(src)
                 except TypeError:
                     # First <img> is the profile picture, we'll skip that
                     src = soup.find_all("img")[-1]["src"]
-                    stories.append(src[: src.index(".jpg")] + ".jpg")
+                    stories.append(src)
                 btn_next = self.driver.find_element_by_xpath(
                     "//div[contains(concat(' ', @class, ' '), "
                     "' coreSpriteRightChevron ')]/..")
@@ -108,14 +108,17 @@ class IgStory(object):
     def _check_new_stories(self, stories):
         new_stories = list()
         for url in stories:
-            if url in self.db:
+            # use original url only for downloading, and use truncated
+            # url for everything else
+            trunc_url = url[: url.index("?")]
+            if trunc_url in self.db:
                 continue
-            story_quote = urllib.parse.quote(url, safe="")
+            story_quote = urllib.parse.quote(trunc_url, safe="")
             media_path = os.path.join(DATA_DIR, story_quote)
             if download_media(url, media_path):
                 # use filecmp to compare file content with previously
-                # downloaded media to make sure it's not just the same media
-                # with different source url
+                # downloaded media to make sure it's not just the same
+                # media with different source url
                 is_found = False
                 for file in os.listdir(STORY_DIR):
                     if filecmp.cmp(os.path.join(STORY_DIR, file), media_path,
@@ -124,9 +127,9 @@ class IgStory(object):
                         os.remove(media_path)
                         break
                 if not is_found:
-                    self.db[url] = time.strftime("%Y-%m-%dT%H:%M:%S",
-                                                 time.gmtime())
-                    new_stories.append(url)
+                    self.db[trunc_url] = time.strftime("%Y-%m-%dT%H:%M:%S",
+                                                       time.gmtime())
+                    new_stories.append(trunc_url)
                     os.rename(media_path, os.path.join(STORY_DIR,
                                                        story_quote))
         if stories:
