@@ -124,13 +124,13 @@ class TwIgMonitor(object):
             for media_path in feed_data["source"]:
                 os.remove(media_path)
 
-        while not self.ig_story.stories.empty():
-            story = self.ig_story.stories.get()
-            media_path = os.path.join(STORY_DIR,
-                                      urllib.parse.quote(story, safe=""))
-            status_text = "ig_story: {}".format(
-                time.strftime(r"%Y%m%d-%H%M%S"))
-            self.post_tweet(status_text, [media_path])
+#        while not self.ig_story.stories.empty():
+#            story = self.ig_story.stories.get()
+#            media_path = os.path.join(STORY_DIR,
+#                                      urllib.parse.quote(story, safe=""))
+#            status_text = "ig_story: {}".format(
+#                time.strftime(r"%Y%m%d-%H%M%S"))
+#            self.post_tweet(status_text, [media_path])
 
         while not self.twt_stream.tweets.empty():
             tweet = self.twt_stream.tweets.get()

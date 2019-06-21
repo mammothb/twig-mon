@@ -137,7 +137,7 @@ class IgStory(object):
                      len(new_stories))
         return new_stories
 
-    @bg_task(300)
+    @bg_task(600)
     def run(self):
         if not self._is_logged_in:
             self.login()
