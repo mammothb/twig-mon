@@ -9,7 +9,8 @@ import urllib
 
 from bs4 import BeautifulSoup
 from selenium import webdriver
-from selenium.common.exceptions import TimeoutException
+from selenium.common.exceptions import (NoSuchElementException,
+                                        TimeoutException)
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
@@ -39,11 +40,16 @@ class IgStory(object):
 
     def login(self):
         self.driver.get(IG_URL + "accounts/login")
-        username = self.driver.find_element_by_xpath(
-            "//input[@name='username']")
-        password = self.driver.find_element_by_xpath(
-            "//input[@name='password']")
-        btn_login = self.driver.find_element_by_xpath("//button[1]")
+        # wait for page to load
+        time.sleep(5)
+        with open(os.path.join(DEBUG_DIR, "ig_login.html"), "w",
+                  encoding="utf-8") as outfile:
+            outfile.write(self.driver.page_source)
+        username = self.driver.find_element(By.XPATH,
+                                            "//input[@name='username']")
+        password = self.driver.find_element(By.XPATH,
+                                            "//input[@name='password']")
+        btn_login = self.driver.find_element(By.XPATH, "//button[1]")
 
         username.send_keys(IG_LOGIN["username"])
         password.send_keys(IG_LOGIN["password"])
@@ -86,9 +92,15 @@ class IgStory(object):
                 "div", attrs={"class", self.indicator_class}))
             for i in range(num_story):
                 time.sleep(0.5)
+                try:
+                    btn_play = self.driver.find_element(
+                        By.XPATH, "//div[text() = 'Tap to play']/..")
+                    btn_play.click()
+                except NoSuchElementException:
+                    pass
                 soup = BeautifulSoup(self.driver.page_source, "html.parser")
                 with open(os.path.join(
-                    DEBUG_DIR, "ig_story{}.html".format(i)), "w",
+                        DEBUG_DIR, "ig_story{}.html".format(i)), "w",
                           encoding="utf-8") as outfile:
                     outfile.write(self.driver.page_source)
                 # Try for video story, then look for image story
@@ -99,7 +111,8 @@ class IgStory(object):
                     # First <img> is the profile picture, we'll skip that
                     src = soup.find_all("img")[-1]["src"]
                     stories.append(src)
-                btn_next = self.driver.find_element_by_xpath(
+                btn_next = self.driver.find_element(
+                    By.XPATH,
                     "//div[contains(concat(' ', @class, ' '), "
                     "' coreSpriteRightChevron ')]/..")
                 btn_next.click()

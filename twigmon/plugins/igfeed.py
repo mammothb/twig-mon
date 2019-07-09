@@ -1,6 +1,7 @@
 import json
 import logging
 import os
+import os.path
 from queue import Queue
 import time
 import urllib
@@ -87,9 +88,9 @@ class MediaPost(object):
         soup = BeautifulSoup(driver.page_source, "html.parser")
         timestamp = time.strptime(soup.find("time")["datetime"][: -5],
                                   "%Y-%m-%dT%H:%M:%S")
-        caption = (soup
-                   .find("div", attrs={"class", cls.caption_class})
-                   .find("span").text)
+        caption = soup.find("div", attrs={"class", cls.caption_class})
+        # Handle instances where posts have no caption
+        caption = "" if caption is None else caption.find("span").text
 
         source = list()
         num = max(1, len(soup.find_all("div", attrs={"class",
