@@ -32,27 +32,32 @@ class SListener(tweepy.StreamListener):
             return
 
         LOG.info("%s New tweet", time.strftime(r"%Y%m%d-%H%M%S"))
+        is_truncated = status["truncated"]
         status_text = (status["extended_tweet"]["full_text"]
-                       if status["truncated"] else status["text"])
+                       if is_truncated else status["text"])
         media_paths = list()
-        if status.get("extended_entities") is not None:
-            for media in status["extended_entities"]["media"]:
-                if media["type"] == "photo":
-                    url = media["media_url"]
-                elif media["type"] == "video":
-                    # video variants contains an .m3u8 element so we filter
-                    # that out and download the video with the highest bitrate
-                    url = sorted([d for d in media["video_info"]["variants"]
-                                  if "bitrate" in d],
-                                 key=lambda k: k["bitrate"])[-1]["url"]
-                    # ignore extra substring behind the .mp4 extension
-                    url = url[: url.index(".mp4")] + ".mp4"
-                else:
-                    continue
-                media_path = os.path.join(DATA_DIR,
-                                          urllib.parse.quote(url, safe=""))
-                if download_media(url, media_path):
-                    media_paths.append(media_path)
+        if is_truncated:
+            medias = status["extended_tweet"]["entities"].get("media", [])
+        else:
+            medias = status.get("extended_entities", {"media": []})["media"]
+        for media in medias:
+            if media["type"] == "photo":
+                url = media["media_url"]
+            elif media["type"] == "video":
+                # video variants contains an .m3u8 element so we filter
+                # that out and download the video with the highest bitrate
+                url = sorted([d for d in media["video_info"]["variants"]
+                              if "bitrate" in d],
+                             key=lambda k: k["bitrate"])[-1]["url"]
+                # ignore extra substring behind the .mp4 extension
+                url = url[: url.index(".mp4")] + ".mp4"
+            else:
+                continue
+            media_path = os.path.join(DATA_DIR,
+                                      urllib.parse.quote(url, safe=""))
+            if download_media(url, media_path):
+                media_paths.append(media_path)
+
         # "de-link" all twitter handles with @/
         status_text = "@/{}: {}".format(
             status["user"]["screen_name"],

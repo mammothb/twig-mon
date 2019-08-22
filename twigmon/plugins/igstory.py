@@ -96,6 +96,7 @@ class IgStory(object):
                     btn_play = self.driver.find_element(
                         By.XPATH, "//div[text() = 'Tap to play']/..")
                     btn_play.click()
+                    time.sleep(0.5)
                 except NoSuchElementException:
                     pass
                 soup = BeautifulSoup(self.driver.page_source, "html.parser")
