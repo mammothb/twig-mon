@@ -2,6 +2,7 @@ from itertools import islice
 import logging
 import math
 import os
+import random
 import re
 import threading
 import time
@@ -16,6 +17,27 @@ from twigmon.plugins.igstory import IgStory
 from twigmon.plugins.twtstream import TwtStream
 
 LOG = logging.getLogger("TwIgMon  ")
+
+def is_english(string):
+    try:
+        string.encode(encoding="utf-8").decode("ascii")
+        return True
+    except UnicodeDecodeError:
+        return False
+
+def break_up_status(status_text):
+    status = [""]
+    length = 0
+    max_length = MAX_TWEET_LEN - 80
+    for char in status_text:
+        char_length = 1 if is_english(char) else 2
+        if length + char_length > max_length:
+            status[-1] += "..."
+            status.append("...")
+            length = 0
+        status[-1] += char
+        length += char_length
+    return status
 
 class TwIgMonitor(object):
     def __init__(self, token):
@@ -56,7 +78,8 @@ class TwIgMonitor(object):
         while True:
             pass
 
-    def post_tweet(self, status_text, media_paths):
+    def post_tweet(self, status_text, media_paths,
+                   status_text_extended=None):
         media_uploads = list()
         try:
             for m_path in media_paths:
@@ -66,7 +89,20 @@ class TwIgMonitor(object):
             # tweet, even if they are not the original media
             if media_uploads:
                 status_text = re.sub(r"https\S+", "", status_text)
-            if len(status_text) > MAX_TWEET_LEN:
+            if status_text_extended is not None:
+                tweet = self.api.update_status(status_text)
+                for i, status in enumerate(status_text_extended):
+                    time.sleep(5 + random.randrange(5))
+                    status_thread = "@{} {}".format(tweet.user.screen_name,
+                                                    status)
+                    if i == len(status_text_extended) - 1:
+                        self.api.update_status(
+                            status_thread, tweet.id_str,
+                            media_ids=[m.media_id for m in media_uploads])
+                    else:
+                        tweet = self.api.update_status(status_thread,
+                                                       tweet.id_str)
+            elif len(status_text) > MAX_TWEET_LEN:
                 idx = status_text[: MAX_TWEET_LEN - 3].rfind(" ")
                 status_text_1 = status_text[: idx] + "..."
                 # Tweet the first half so we can get the tweet id to form
@@ -109,14 +145,14 @@ class TwIgMonitor(object):
             total = len(video_paths) + len(photo_paths)
             counter = 1
             for video_path in video_paths:
-                status_text = "ig_feed ({}/{}): {}".format(
-                    counter, total, feed_data["caption"])
-                self.post_tweet(status_text, [video_path])
+                status = break_up_status("ig_feed ({}/{}): {}".format(
+                    counter, total, feed_data["caption"]))
+                self.post_tweet(status[0], [video_path], status[1 :])
                 counter += 1
             for photo_path in photo_paths:
-                status_text = "ig_feed ({}/{}): {}".format(
-                    counter, total, feed_data["caption"])
-                self.post_tweet(status_text, photo_path)
+                status = break_up_status("ig_feed ({}/{}): {}".format(
+                    counter, total, feed_data["caption"]))
+                self.post_tweet(status[0], photo_path, status[1 :])
                 counter += 1
 
             # remove the downloaded media after tweeting since we will

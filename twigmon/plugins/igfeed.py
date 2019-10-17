@@ -3,13 +3,15 @@ import logging
 import os
 import os.path
 from queue import Queue
+import random
 import time
 import urllib
 
 from bs4 import BeautifulSoup
 from selenium import webdriver
+from selenium.webdriver.common.by import By
 
-from twigmon.config import USER
+from twigmon.config import IG_LOGIN, USER
 from twigmon.const import DATA_DIR, DEBUG_DIR, IG_URL
 from twigmon.decorators import bg_task
 from twigmon.utility import download_media
@@ -25,6 +27,29 @@ class IgFeed(object):
         self.last_update = (time.gmtime() if last_update is None
                             else last_update)
         self.posts = Queue()
+        self._is_logged_in = False
+
+    def login(self):
+        self.driver.get(IG_URL + "accounts/login")
+        # wait for page to load
+        time.sleep(5)
+        with open(os.path.join(DEBUG_DIR, "ig_login.html"), "w",
+                  encoding="utf-8") as outfile:
+            outfile.write(self.driver.page_source)
+        username = self.driver.find_element(By.XPATH,
+                                            "//input[@name='username']")
+        password = self.driver.find_element(By.XPATH,
+                                            "//input[@name='password']")
+        btn_login = self.driver.find_element(By.XPATH, "//button[1]")
+
+        username.send_keys(IG_LOGIN["username"])
+        password.send_keys(IG_LOGIN["password"])
+        btn_login.click()
+
+        # Wait for login process
+        time.sleep(10 + random.randrange(10))
+        self._is_logged_in = True
+        LOG.info("%s Logged in to IG", time.strftime(r"%Y%m%d-%H%M%S"))
 
     def _query_page(self, url):
         self.driver.get(url)
@@ -36,6 +61,9 @@ class IgFeed(object):
 
     @bg_task(120)
     def run(self):
+        # if not self._is_logged_in:
+        #     self.login()
+
         media_posts = self._query_page(IG_URL + USER["ig"])
 
         counter = 0
@@ -71,7 +99,7 @@ class MediaPost(object):
     caption_class = "C4VMK"
     img_class = "FFVAD"
     indicator_class = "Yi5aA"
-    post_class = "v1Nh3 kIKUG _bz0w"
+    post_class = "v1Nh3 kIKUG _bz0w"  # Posts from main feed page
     video_class = "tWeCl"
 
     def __init__(self, timestamp, caption, source):
