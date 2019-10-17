@@ -88,6 +88,8 @@ class IgStory(object):
             except TimeoutException:
                 return stories
             soup = BeautifulSoup(self.driver.page_source, "html.parser")
+            if soup.find("div", attrs={"class": "U7sfN"}):
+                self.login()
             num_story = len(soup.find_all(
                 "div", attrs={"class", self.indicator_class}))
             for i in range(num_story):
