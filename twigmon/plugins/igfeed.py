@@ -27,7 +27,6 @@ class IgFeed(object):
         self.last_update = (time.gmtime() if last_update is None
                             else last_update)
         self.posts = Queue()
-        self._is_logged_in = False
 
     def login(self):
         self.driver.get(IG_URL + "accounts/login")
@@ -48,7 +47,6 @@ class IgFeed(object):
 
         # Wait for login process
         time.sleep(10 + random.randrange(10))
-        self._is_logged_in = True
         LOG.info("%s Logged in to IG", time.strftime(r"%Y%m%d-%H%M%S"))
 
     def _query_page(self, url):
@@ -59,12 +57,19 @@ class IgFeed(object):
         return list(MediaPost.parse_html(self.driver.page_source,
                                          self.driver))
 
+    def _is_logged_out(self, url):
+        self.driver.get(url)
+        soup = BeautifulSoup(self.driver.page_source, "html.parser")
+        logo = soup.find("h1", attrs={"class": "coreSpriteLoggedOutWordmark"})
+        return logo is None
+
     @bg_task(120)
     def run(self):
-        # if not self._is_logged_in:
-        #     self.login()
+        url = IG_URL + USER["ig"]
+        if not self._is_logged_out(url):
+            self.login()
 
-        media_posts = self._query_page(IG_URL + USER["ig"])
+        media_posts = self._query_page(url)
 
         counter = 0
         for post in media_posts:
@@ -75,11 +80,9 @@ class IgFeed(object):
             for url in post.source:
                 media_path = os.path.join(DATA_DIR,
                                           urllib.parse.quote(url, safe=""))
+                media_path = media_path[: media_path.index("%3F")]
                 if download_media(url, media_path):
-                    # Remove query strings in sources
-                    new_path = media_path[: media_path.index("%3F")]
-                    os.rename(media_path, new_path)
-                    media_paths.append(new_path)
+                    media_paths.append(media_path)
             data = {
                 "timestamp": time.strftime(r"%Y-%m-%dT%H:%M:%S",
                                            post.timestamp),
